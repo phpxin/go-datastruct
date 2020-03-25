@@ -9,7 +9,7 @@ import (
 type DirectedWeightGraphSearch struct {
 	Src                 int32           // 根节点，须要搜索的原点
 	TotalCostToThisNode map[int32]int32 // 保存原点到每个节点的权
-	SPT                 *utils.SPTNode        // 最小生成树根节点
+	SPT                 *utils.SPTNode  // 最小生成树根节点
 	Graph               *DirectedWeightGraph
 }
 
@@ -18,15 +18,37 @@ func NewDirectedWeightGraphSearch(src int32, g *DirectedWeightGraph) *DirectedWe
 	return &DirectedWeightGraphSearch{
 		Src:                 src,
 		TotalCostToThisNode: nil,
+		SPT:                 nil,
 		Graph:               g,
 	}
 }
 
+// 检索一条通往 target 的路径
+//func (d *DirectedWeightGraphSearch) Search(target int32) (int32,bool) {
+//	if d.SPT==nil {
+//		panic("please create SPT first")
+//	}
+//
+//	if target==d.Src{
+//		return target
+//	}
+//
+//	for k,v := range d.SPT.Children {
+//		if v.Value == target {
+//			return v.Value,true
+//		}else{
+//			i,b := d.Search()
+//		}
+//	}
+//
+//	return 0,false
+//}
+
 // 返回 n -> t 的权
 func (d *DirectedWeightGraphSearch) EdgeCost(n, t int32) (int32, bool) {
-	adjs, _ := d.Graph.Adj(n)
+	adjCollection, _ := d.Graph.Adj(n)
 
-	for k, v := range adjs {
+	for k, v := range adjCollection {
 		kk, ok := k.(int32)
 		if !ok {
 			panic("convert ADJ type failed")
@@ -50,27 +72,27 @@ func (d *DirectedWeightGraphSearch) PrintAllPathCosts() {
 
 // 最小生成树
 func (d *DirectedWeightGraphSearch) CreateSPT() {
-	m_CostToThisNode := make(map[int32]int32)
-	m_SearchFrontier := make(map[int32]*DirectedWeightEdge)
-	m_ShortestPathTree := make(map[int32]*DirectedWeightEdge)
+	mCostToThisNode := make(map[int32]int32)
+	mSearchFrontier := make(map[int32]*DirectedWeightEdge)
+	mShortestPathTree := make(map[int32]*DirectedWeightEdge)
 
 	vertexes := d.Graph.Vertexes()
 	for _, v := range vertexes {
 		vi := v.(int32)
-		m_CostToThisNode[vi] = 0
-		m_SearchFrontier[vi] = nil
-		m_ShortestPathTree[vi] = nil
+		mCostToThisNode[vi] = 0
+		mSearchFrontier[vi] = nil
+		mShortestPathTree[vi] = nil
 	}
 
 	ipq := utils.NewIndexedPriorityQueue(func(a interface{}, b interface{}) int32 {
-		a_int := a.(int32)
-		b_int := b.(int32)
+		aInt := a.(int32)
+		bInt := b.(int32)
 
-		if m_CostToThisNode[a_int] == m_CostToThisNode[b_int] {
+		if mCostToThisNode[aInt] == mCostToThisNode[bInt] {
 			return 0
 		}
 
-		if m_CostToThisNode[a_int] > m_CostToThisNode[b_int] {
+		if mCostToThisNode[aInt] > mCostToThisNode[bInt] {
 			return 1
 		}
 
@@ -83,7 +105,7 @@ func (d *DirectedWeightGraphSearch) CreateSPT() {
 
 		nextClosestNode := ipq.Pop().(int32)
 
-		m_ShortestPathTree[nextClosestNode] = m_SearchFrontier[nextClosestNode]
+		mShortestPathTree[nextClosestNode] = mSearchFrontier[nextClosestNode]
 
 		adjs, _ := d.Graph.Adj(nextClosestNode)
 
@@ -93,17 +115,16 @@ func (d *DirectedWeightGraphSearch) CreateSPT() {
 				panic("convert ADJ type failed")
 			}
 
-			NewCost := edge.Distance + m_CostToThisNode[nextClosestNode]
+			NewCost := edge.Distance + mCostToThisNode[nextClosestNode]
 
-			if m_SearchFrontier[vertex] == nil {
-				// vertex is pe->To()
-				m_CostToThisNode[vertex] = NewCost
+			if mSearchFrontier[vertex] == nil {
+				mCostToThisNode[vertex] = NewCost
 				ipq.Insert(vertex)
-				m_SearchFrontier[vertex] = edge
-			} else if NewCost < m_CostToThisNode[vertex] && m_ShortestPathTree[vertex] == nil {
-				m_CostToThisNode[vertex] = NewCost
+				mSearchFrontier[vertex] = edge
+			} else if NewCost < mCostToThisNode[vertex] && mShortestPathTree[vertex] == nil {
+				mCostToThisNode[vertex] = NewCost
 				ipq.ChangePriority(vertex)
-				m_SearchFrontier[vertex] = edge
+				mSearchFrontier[vertex] = edge
 			}
 		}
 	}
@@ -113,18 +134,18 @@ func (d *DirectedWeightGraphSearch) CreateSPT() {
 	d.SPT = utils.NewSPTNode(d.Src)
 	mstArr[d.Src] = d.SPT
 
-	for _, v := range m_ShortestPathTree {
+	for _, v := range mShortestPathTree {
 		if v == nil {
 			continue
 		}
 
-		sptFromNode,ok := mstArr[v.From.(int32)]
+		sptFromNode, ok := mstArr[v.From.(int32)]
 		if !ok {
 			sptFromNode = utils.NewSPTNode(v.From.(int32))
 			mstArr[v.From.(int32)] = sptFromNode
 		}
 
-		sptToNode,ok := mstArr[v.To.(int32)]
+		sptToNode, ok := mstArr[v.To.(int32)]
 		if !ok {
 			sptToNode = utils.NewSPTNode(v.To.(int32))
 			mstArr[v.To.(int32)] = sptToNode
@@ -136,5 +157,5 @@ func (d *DirectedWeightGraphSearch) CreateSPT() {
 		sptToNode.Weight = v.Distance
 	}
 
-	d.TotalCostToThisNode = m_CostToThisNode
+	d.TotalCostToThisNode = mCostToThisNode
 }

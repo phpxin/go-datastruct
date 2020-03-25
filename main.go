@@ -2,6 +2,7 @@ package main
 
 func main(){
 
-	DWGSearchTest()
+	//DWGSearchTest()
 
+	linkedlist_test()
 }
