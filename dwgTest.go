@@ -41,6 +41,12 @@ func DWGSearchTest(){
 
 	utils.PrintSPT(dwgs.SPT)
 	dwgs.PrintAllPathCosts()
+
+	path := dwgs.Search(5)
+
+	for i:=len(path)-1; i>=0; i-- {
+		fmt.Println(path[i])
+	}
 }
 
 // 优先队列测试

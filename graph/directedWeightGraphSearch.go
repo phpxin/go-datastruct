@@ -10,6 +10,7 @@ type DirectedWeightGraphSearch struct {
 	Src                 int32           // 根节点，须要搜索的原点
 	TotalCostToThisNode map[int32]int32 // 保存原点到每个节点的权
 	SPT                 *utils.SPTNode  // 最小生成树根节点
+	SPTNodeMap map[int32]*utils.SPTNode // 最小生成树全部节点的映射
 	Graph               *DirectedWeightGraph
 }
 
@@ -19,30 +20,50 @@ func NewDirectedWeightGraphSearch(src int32, g *DirectedWeightGraph) *DirectedWe
 		Src:                 src,
 		TotalCostToThisNode: nil,
 		SPT:                 nil,
+		SPTNodeMap: nil,
 		Graph:               g,
 	}
 }
 
-// 检索一条通往 target 的路径
-//func (d *DirectedWeightGraphSearch) Search(target int32) (int32,bool) {
-//	if d.SPT==nil {
-//		panic("please create SPT first")
-//	}
-//
-//	if target==d.Src{
-//		return target
-//	}
-//
-//	for k,v := range d.SPT.Children {
-//		if v.Value == target {
-//			return v.Value,true
-//		}else{
-//			i,b := d.Search()
-//		}
-//	}
-//
-//	return 0,false
-//}
+//检索一条通往 target 的路径
+func (d *DirectedWeightGraphSearch) Search(target int32) []int32 {
+	if d.SPT==nil {
+		panic("please create SPT first")
+	}
+
+	result := make([]int32, 0)
+	result = append(result, target)
+
+	if target==d.Src{
+		return result
+	}
+
+	targetNode,ok := d.SPTNodeMap[target]
+	if !ok {
+		panic("target doesn't exist")
+	}
+
+	ll := utils.NewLinkedList()
+	ll.Push(targetNode)
+
+	for !ll.Empty() {
+		item,err := ll.Pop()
+		if err!=nil {
+			panic(err)
+		}
+
+		parent := item.(*utils.SPTNode).Parent.Value
+
+		result = append(result, parent)
+
+		if parent!=d.Src {
+			ll.Push(item.(*utils.SPTNode).Parent)
+		}
+
+	}
+
+	return result
+}
 
 // 返回 n -> t 的权
 func (d *DirectedWeightGraphSearch) EdgeCost(n, t int32) (int32, bool) {
@@ -130,25 +151,25 @@ func (d *DirectedWeightGraphSearch) CreateSPT() {
 	}
 
 	// create SPT
-	mstArr := make(map[int32]*utils.SPTNode)
+	d.SPTNodeMap = make(map[int32]*utils.SPTNode)
 	d.SPT = utils.NewSPTNode(d.Src)
-	mstArr[d.Src] = d.SPT
+	d.SPTNodeMap[d.Src] = d.SPT
 
 	for _, v := range mShortestPathTree {
 		if v == nil {
 			continue
 		}
 
-		sptFromNode, ok := mstArr[v.From.(int32)]
+		sptFromNode, ok := d.SPTNodeMap[v.From.(int32)]
 		if !ok {
 			sptFromNode = utils.NewSPTNode(v.From.(int32))
-			mstArr[v.From.(int32)] = sptFromNode
+			d.SPTNodeMap[v.From.(int32)] = sptFromNode
 		}
 
-		sptToNode, ok := mstArr[v.To.(int32)]
+		sptToNode, ok := d.SPTNodeMap[v.To.(int32)]
 		if !ok {
 			sptToNode = utils.NewSPTNode(v.To.(int32))
-			mstArr[v.To.(int32)] = sptToNode
+			d.SPTNodeMap[v.To.(int32)] = sptToNode
 		}
 
 		sptFromNode.AddChild(sptToNode)
